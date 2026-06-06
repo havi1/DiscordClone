@@ -25,13 +25,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-ga21th-xtay0o*l!8i+)8zucb7k7wo25#&-%@8j@##b-#u7l$0'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Ustawienie DEBUG na False, gdy aplikacja jest na Renderze
 DEBUG = 'RENDER' not in os.environ
 
 ALLOWED_HOSTS = []
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+    CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
@@ -141,10 +144,8 @@ import os
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Konfiguracja warstwy komunikacji (Channel Layers) dla WebSockets
 CHANNEL_LAYERS = {
     "default": {
-        # Używamy pamięci RAM do testów lokalnych (najszybsze rozwiązanie)
         "BACKEND": "channels.layers.InMemoryChannelLayer"
     }
 }
