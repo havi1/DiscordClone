@@ -114,7 +114,12 @@
                     </button>
                     {% endif %}
                     <div class="text-light mt-1" style="font-size: 15px; word-break: break-word;">
-                        {{ msg.content }}
+                        {% if msg.content == '[Wiadomość głosowa]' %}
+                            <audio controls src="/media/audio/voice_{{ msg.id }}.wav" class="mt-2 w-100" style="max-width: 300px;"></audio>
+                        {% else %}
+                            {{ msg.content }}
+                        {% endif %}
+                        
                         {% if msg.image %}
                             <br><img src="{{ msg.image.url }}" class="img-fluid rounded mt-2 shadow-sm" style="max-height: 300px;">
                         {% endif %}
