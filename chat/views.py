@@ -66,7 +66,7 @@ def upload_audio(request, room_name):
         channel = get_object_or_404(Channel, name=room_name)
         audio_file = request.FILES['audio']
         
-        msg = Message.objects.create(user=request.user, channel=channel, content="[Wiadomość głosowa]")
+        msg = Message.objects.create(sender=request.user, channel=channel, content="[Wiadomość głosowa]")
         file_name = default_storage.save(f'audio/voice_{msg.id}.wav', ContentFile(audio_file.read()))
         
         return JsonResponse({'success': True, 'audio_url': settings.MEDIA_URL + file_name, 'message_id': msg.id})
