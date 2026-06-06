@@ -132,6 +132,14 @@
     const userName = JSON.parse(document.getElementById('user-name').textContent);
     const userRole = JSON.parse(document.getElementById('user-role').textContent);
 
+    document.addEventListener('DOMContentLoaded', function() {
+        if ("Notification" in window) {
+            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+        }
+    });
+
     const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/chat/' + roomName + '/');
 
     chatSocket.onmessage = function(e) {
@@ -171,6 +179,18 @@
             
             chatLog.appendChild(messageElement);
             chatLog.scrollTop = chatLog.scrollHeight;
+
+            if (document.hidden && data.username !== userName) {
+                if (Notification.permission === "granted") {
+                    let notificationBody = data.message ? data.message : "📷 Przesłano zdjęcie";
+                    let notificationIcon = data.avatar_url ? data.avatar_url : "https://cdn-icons-png.flaticon.com/512/3670/3670157.png"; // Domyślna ikonka
+                    
+                    new Notification("Nowa wiadomość od " + data.username, {
+                        body: notificationBody,
+                        icon: notificationIcon
+                    });
+                }
+            }
         }
         else if (data.action === 'delete_message') {
             const msgElement = document.getElementById(`msg-${data.message_id}`);
