@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-6">
+        <div class="card p-5 shadow-lg">
+            <div class="d-flex align-items-center mb-4">
+                {% if request.user.avatar %}
+                    <img src="{{ request.user.avatar.url }}" alt="Avatar" class="rounded-circle me-4 shadow-sm" style="width: 100px; height: 100px; object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle bg-secondary d-flex justify-content-center align-items-center text-white fw-bold me-4 shadow-sm" style="width: 100px; height: 100px; font-size: 40px; background-color: #5865F2 !important;">
+                        {{ request.user.username|make_list|first|upper }}
+                    </div>
+                {% endif %}
+                <div>
+                    <h2 class="mb-0 fw-bold">{{ request.user.username }}</h2>
+                    <span class="badge" style="background-color: #5865F2; font-size: 14px;">{{ request.user.get_role_display }}</span>
+                </div>
+            </div>
+
+            <hr class="border-secondary mb-4">
+
+            <h5 class="fw-bold mb-3 text-uppercase text-muted" style="font-size: 13px;">Edytuj profil</h5>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'home' %}" class="btn btn-secondary px-4 py-2">Wróć</a>
+                    <button type="submit" class="btn btn-primary px-4 py-2">Zapisz zmiany</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

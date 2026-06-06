@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row g-0 shadow-lg rounded-4 overflow-hidden" style="height: 85vh;">
+    <div class="col-md-3 sidebar p-3 d-flex flex-column">
+        <h6 class="fw-bold text-uppercase text-muted mb-3" style="font-size: 12px;">Kanały tekstowe</h6>
+        <div class="mb-3">
+            <a href="/chat/general/" class="channel-link d-block mb-1"># general</a>
+            <a href="/chat/pomoc/" class="channel-link d-block mb-1"># pomoc</a>
+            <a href="/chat/offtopic/" class="channel-link d-block mb-1"># offtopic</a>
+        </div>
+
+        <h6 class="fw-bold text-uppercase text-muted mb-3 mt-2" style="font-size: 12px;">Wiadomości Prywatne</h6>
+        <div class="flex-grow-1" style="overflow-y: auto; overflow-x: hidden;">
+            {% for u in users %}
+                <div class="d-flex align-items-center justify-content-between pe-2 channel-link mb-1">
+                    <a href="{% url 'dm' u.username %}" class="text-decoration-none flex-grow-1" style="color: inherit;">
+                        <i class="bi bi-person-fill me-1"></i> 
+                        <span class="{% if u.is_blocked %}text-danger text-decoration-line-through{% endif %}">{{ u.username }}</span>
+                    </a>
+                    
+                    {% if request.user.role == 'admin' or request.user.role == 'mod' %}
+                        {% if u.role != 'admin' %}
+                            <a href="{% url 'toggle_block' u.id %}" class="btn btn-sm p-0 m-0 text-muted" title="Zablokuj / Odblokuj">
+                                <i class="bi bi-hammer text-{% if u.is_blocked %}danger{% else %}secondary{% endif %}"></i>
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-auto pt-3 border-top border-dark d-flex align-items-center justify-content-between" style="background-color: #232428; margin: -15px -15px -15px -15px; padding: 10px 15px;">
+            <div class="d-flex align-items-center">
+                {% if request.user.avatar %}
+                    <img src="{{ request.user.avatar.url }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle bg-secondary d-flex justify-content-center align-items-center text-white fw-bold me-2" style="width: 32px; height: 32px; font-size: 14px;">
+                        {{ request.user.username|make_list|first|upper }}
+                    </div>
+                {% endif %}
+                <div style="line-height: 1.2;">
+                    <strong style="font-size: 14px; display: block;">{{ request.user.username }}</strong>
+                    <small class="text-muted" style="font-size: 11px;">{{ request.user.get_role_display }}</small>
+                </div>
+            </div>
+            <div>
+                <a href="{% url 'profile' %}" class="text-muted me-2" title="Ustawienia"><i class="bi bi-gear-fill"></i></a>
+                <a href="{% url 'logout' %}" class="text-danger" title="Wyloguj"><i class="bi bi-box-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-9 chat-area p-0 d-flex flex-column">
+        <div class="p-3 border-bottom border-dark shadow-sm z-1" style="background-color: #313338;">
+            {% if is_dm %}
+                <h5 class="fw-bold mb-0 text-white"><i class="bi bi-at text-muted fs-4 align-middle me-1"></i>{{ other_user.username }}</h5>
+            {% else %}
+                <h5 class="fw-bold mb-0 text-white"><i class="bi bi-hash text-muted fs-4 align-middle me-1"></i>{{ room_name }}</h5>
+            {% endif %}
+        </div>
+        
+        <div id="chat-log" class="flex-grow-1 p-4" style="overflow-y: auto;">
+            <div class="text-start mb-4 mt-auto">
+                <h1 class="fw-bold text-white mb-2">{% if is_dm %}@{{ other_user.username }}{% else %}#{{ room_name }}{% endif %}</h1>
+                <p class="text-muted">To jest początek historii {% if is_dm %}Twojej bezpośredniej rozmowy z {{ other_user.username }}{% else %}kanału #{{ room_name }}{% endif %}.</p>
+            </div>
+            
+            {% for msg in messages %}
+            <div id="msg-{{ msg.id }}" class="position-relative d-flex message-item mb-2">
+                <div class="me-3 mt-1">
+                    {% if msg.sender.avatar %}
+                        <img src="{{ msg.sender.avatar.url }}" class="rounded-circle shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle d-flex justify-content-center align-items-center text-white fw-bold shadow-sm" style="width: 40px; height: 40px; font-size: 18px; background-color: #5865F2;">
+                            {{ msg.sender.username|make_list|first|upper }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="flex-grow-1 pe-4">
+                    <div>
+                        <strong class="text-white" style="font-size: 15px;">{{ msg.sender.username }}</strong> 
+                        <span class="text-muted ms-2" style="font-size: 12px;">{{ msg.timestamp|date:"d M H:i" }}</span>
+                    </div>
+                    
+                    {% if msg.sender == request.user or request.user.role == 'admin' or request.user.role == 'mod' %}
+                    <button class="btn btn-sm btn-danger position-absolute top-0 end-0 delete-btn m-2 py-0 px-2" onclick="deleteMessage('{{ msg.id }}')" title="Usuń wiadomość">
+                        <i class="bi bi-trash3-fill" style="font-size: 12px;"></i>
+                    </button>
+                    {% endif %}
+                    
+                    <div class="text-light mt-1" style="font-size: 15px; word-break: break-word;">
+                        {{ msg.content }}
+                        {% if msg.image %}
+                            <br><img src="{{ msg.image.url }}" class="img-fluid rounded mt-2 shadow-sm" style="max-height: 300px;">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="p-3 bg-transparent">
+            <div class="input-group bg-dark rounded-3 overflow-hidden shadow-sm" style="background-color: #383a40 !important;">
+                <label class="btn btn-secondary d-flex align-items-center border-0 text-muted px-3" style="background-color: #383a40 !important; cursor: pointer;">
+                    <i class="bi bi-plus-circle-fill fs-5"></i>
+                    <input type="file" id="chat-image-input" accept="image/*" hidden>
+                </label>
+                
+                <input id="chat-message-input" type="text" class="form-control border-0 shadow-none text-white" style="background-color: #383a40 !important; padding: 12px 0;" placeholder="Napisz na {% if is_dm %}@{{ other_user.username }}{% else %}#{{ room_name }}{% endif %}">
+                <button id="chat-message-submit" class="btn border-0 text-muted px-3" style="background-color: #383a40 !important;">
+                    <i class="bi bi-send-fill fs-5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ room_name|json_script:"room-name" }}
+{{ request.user.username|json_script:"user-name" }}
+{{ request.user.role|json_script:"user-role" }}
+
+<script>
+    const roomName = JSON.parse(document.getElementById('room-name').textContent);
+    const userName = JSON.parse(document.getElementById('user-name').textContent);
+    const userRole = JSON.parse(document.getElementById('user-role').textContent);
+
+    const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/chat/' + roomName + '/');
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const chatLog = document.querySelector('#chat-log');
+        
+        if (data.action === 'chat_message') {
+            let contentHtml = data.message;
+            if (data.image_url) {
+                contentHtml = `<img src="${data.image_url}" class="img-fluid rounded mt-2 shadow-sm" style="max-height: 300px;">`;
+            }
+
+            let deleteBtn = '';
+            if (data.username === userName || userRole === 'admin' || userRole === 'mod') {
+                deleteBtn = `<button class="btn btn-sm btn-danger position-absolute top-0 end-0 delete-btn m-2 py-0 px-2" onclick="deleteMessage('${data.message_id}')" title="Usuń wiadomość"><i class="bi bi-trash3-fill" style="font-size: 12px;"></i></button>`;
+            }
+
+            let avatarHtml = `<div class="rounded-circle d-flex justify-content-center align-items-center text-white fw-bold shadow-sm" style="width: 40px; height: 40px; font-size: 18px; background-color: #5865F2;">${data.username.charAt(0).toUpperCase()}</div>`;
+            if (data.avatar_url && data.avatar_url !== "") {
+                avatarHtml = `<img src="${data.avatar_url}" class="rounded-circle shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">`;
+            }
+
+            const messageElement = document.createElement('div');
+            messageElement.id = `msg-${data.message_id}`;
+            messageElement.className = "position-relative d-flex message-item mb-2";
+            
+            messageElement.innerHTML = `
+                <div class="me-3 mt-1">${avatarHtml}</div>
+                <div class="flex-grow-1 pe-4">
+                    <div>
+                        <strong class="text-white" style="font-size: 15px;">${data.username}</strong> 
+                        <span class="text-muted ms-2" style="font-size: 12px;">teraz</span> 
+                    </div>
+                    ${deleteBtn}
+                    <div class="text-light mt-1" style="font-size: 15px; word-break: break-word;">${contentHtml}</div>
+                </div>`;
+            
+            chatLog.appendChild(messageElement);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+        else if (data.action === 'delete_message') {
+            const msgElement = document.getElementById(`msg-${data.message_id}`);
+            if (msgElement) msgElement.remove();
+        }
+    };
+
+    function deleteMessage(msgId) {
+        if (confirm("Czy na pewno chcesz usunąć tę wiadomość?")) {
+            chatSocket.send(JSON.stringify({'action': 'delete_message', 'message_id': msgId}));
+        }
+    }
+
+    document.querySelector('#chat-image-input').onchange = async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch(`/chat/${roomName}/upload/`, { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (data.success) {
+            chatSocket.send(JSON.stringify({'action': 'chat_message', 'message': '', 'image_url': data.image_url, 'message_id': data.message_id}));
+        }
+    };
+
+    const messageInput = document.querySelector('#chat-message-input');
+    messageInput.onkeyup = function(e) { if (e.keyCode === 13) document.querySelector('#chat-message-submit').click(); };
+    document.querySelector('#chat-message-submit').onclick = function(e) {
+        const message = messageInput.value;
+        if (message.trim() !== "") {
+            chatSocket.send(JSON.stringify({'action': 'chat_message', 'message': message}));
+            messageInput.value = '';
+        }
+    };
+
+    const initialChatLog = document.querySelector('#chat-log');
+    initialChatLog.scrollTop = initialChatLog.scrollHeight;
+</script>
+{% endblock %}

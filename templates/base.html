@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klon Discorda</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"> <style>
+        body { 
+            background-color: #313338;
+            color: #dbdee1; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card { 
+            background-color: #2b2d31; 
+            color: white; 
+            border: none; 
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        .sidebar {
+            background-color: #1e1f22 !important;
+            border-radius: 12px 0 0 12px;
+        }
+        .chat-area {
+            background-color: #313338 !important;
+            border-radius: 0 12px 12px 0;
+        }
+        .btn-primary { 
+            background-color: #5865F2; 
+            border: none; 
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+        .btn-primary:hover { 
+            background-color: #4752C4; 
+        }
+        a { color: #00aff4; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        
+        input[type="text"], input[type="password"], input[type="email"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: #1e1f22;
+            color: #dbdee1;
+            border: 1px solid #1e1f22;
+            border-radius: 4px;
+            transition: border-color 0.2s;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #5865F2;
+        }
+        label {
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #b5bac1;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #2b2d31; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #111214; }
+
+        .message-item {
+            padding: 5px 15px;
+            border-radius: 8px;
+            margin-left: -15px;
+            margin-right: -15px;
+            transition: background-color 0.1s;
+        }
+        .message-item:hover { background-color: #2b2d31; }
+        
+        .delete-btn { opacity: 0; transition: opacity 0.2s; }
+        .message-item:hover .delete-btn { opacity: 1; }
+
+    
+        .channel-link {
+            padding: 6px 10px;
+            border-radius: 4px;
+            color: #949ba4 !important;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .channel-link:hover {
+            background-color: #3f4147;
+            color: #dbdee1 !important;
+            text-decoration: none;
+        }
+    
+        .text-muted {
+            color: #949ba4 !important; 
+        }
+
+        .helptext {
+            color: #b5bac1 !important;
+            font-size: 12px;
+            display: block;
+            margin-top: 4px;
+            margin-bottom: 15px;
+        }
+
+        ul.errorlist {
+            color: #f23f43 !important;
+            list-style: none;
+            padding-left: 0;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+
+        .form-control, input, textarea {
+            color: #ffffff !important; 
+        }
+ 
+        form ul {
+            color: #b5bac1;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4 mb-4">
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>
