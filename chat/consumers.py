@@ -61,6 +61,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+        elif action == 'signal':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'voice_signal_event',
+                    'sender': user.username,
+                    'signal_data': data.get('signal_data')
+                }
+            )
+
         elif action == 'delete_message':
             message_id = data.get('message_id')
             if user.is_authenticated:
@@ -73,6 +83,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             'message_id': message_id
                         }
                     )
+                    
 
     async def chat_message_event(self, event):
         await self.send(text_data=json.dumps({
@@ -81,6 +92,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'image_url': event.get('image_url'),
             'username': event['username'],
             'message_id': event['message_id']
+        }))
+
+    async def voice_signal_event(self, event):
+        await self.send(text_data=json.dumps({
+            'action': 'signal',
+            'sender': event['sender'],
+            'signal_data': event['signal_data']
         }))
 
     async def message_deleted_event(self, event):

@@ -6,6 +6,22 @@
         <h6 class="fw-bold text-uppercase text-muted mb-3" style="font-size: 12px;">Kanały tekstowe</h6>
         <div class="mb-3">
             <a href="/chat/general/" class="channel-link d-block mb-1"># general</a>
+            <div class="d-flex align-items-center justify-content-between p-2 mb-2 bg-dark border border-secondary rounded">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-telephone-fill text-success me-2 animate-pulse" id="voice-status-icon" style="display:none;"></i>
+                    <span id="voice-status-text" class="text-muted small">Status głosowy: Rozłączony</span>
+                </div>
+                <div>
+                    <button id="join-voice-btn" class="btn btn-sm btn-success me-2">
+                        <i class="bi bi-mic-fill me-1"></i> Dołącz do głosu
+                    </button>
+                    <button id="leave-voice-btn" class="btn btn-sm btn-danger" style="display: none;">
+                        <i class="bi bi-telephone-x-fill me-1"></i> Rozłącz
+                    </button>
+                </div>
+            </div>
+            
+            <div id="remote-audios" style="display: none;"></div>
             <a href="/chat/pomoc/" class="channel-link d-block mb-1"># pomoc</a>
             <a href="/chat/offtopic/" class="channel-link d-block mb-1"># offtopic</a>
         </div>
@@ -139,6 +155,7 @@
     const userName = JSON.parse(document.getElementById('user-name').textContent);
     const userRole = JSON.parse(document.getElementById('user-role').textContent);
 
+
     const searchInput = document.getElementById('user-search-input');
     if (searchInput) {
         searchInput.addEventListener('input', function() {
@@ -147,7 +164,6 @@
 
             userItems.forEach(function(item) {
                 const username = item.textContent.toLowerCase();
-                
                 if (username.includes(filterText)) {
                     item.classList.remove('d-none');
                     item.classList.add('d-flex');
@@ -167,13 +183,14 @@
         }
     });
 
-const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
-const chatSocket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/chat/' + roomName + '/');
+    const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const chatSocket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/chat/' + roomName + '/');
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
         const chatLog = document.querySelector('#chat-log');
         
+    
         if (data.action === 'chat_message') {
             let contentHtml = data.message;
             if (data.image_url) {
@@ -211,7 +228,7 @@ const chatSocket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/
             if (document.hidden && data.username !== userName) {
                 if (Notification.permission === "granted") {
                     let notificationBody = data.message ? data.message : "📷 Przesłano zdjęcie";
-                    let notificationIcon = data.avatar_url ? data.avatar_url : "https://cdn-icons-png.flaticon.com/512/3670/3670157.png"; // Domyślna ikonka
+                    let notificationIcon = data.avatar_url ? data.avatar_url : "https://cdn-icons-png.flaticon.com/512/3670/3670157.png";
                     
                     new Notification("Nowa wiadomość od " + data.username, {
                         body: notificationBody,
@@ -223,6 +240,9 @@ const chatSocket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/
         else if (data.action === 'delete_message') {
             const msgElement = document.getElementById(`msg-${data.message_id}`);
             if (msgElement) msgElement.remove();
+        }
+        else if (data.action === 'signal' && data.sender !== userName) {
+            handleVoiceSignal(data.sender, data.signal_data);
         }
     };
 
@@ -258,5 +278,121 @@ const chatSocket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/
 
     const initialChatLog = document.querySelector('#chat-log');
     initialChatLog.scrollTop = initialChatLog.scrollHeight;
+
+
+    let localStream;
+    const peerConnections = {}; 
+    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }; 
+
+    const joinVoiceBtn = document.getElementById('join-voice-btn');
+    const leaveVoiceBtn = document.getElementById('leave-voice-btn');
+    const voiceStatusText = document.getElementById('voice-status-text');
+    const voiceStatusIcon = document.getElementById('voice-status-icon');
+
+    if (joinVoiceBtn) {
+        joinVoiceBtn.onclick = async function() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                
+                joinVoiceBtn.style.display = 'none';
+                leaveVoiceBtn.style.display = 'inline-block';
+                voiceStatusText.textContent = "Status głosowy: Połączony (Mikrofon aktywny)";
+                voiceStatusText.className = "text-success small fw-bold";
+                voiceStatusIcon.style.display = 'inline-block';
+
+                chatSocket.send(JSON.stringify({
+                    'action': 'signal',
+                    'signal_data': { 'type': 'join' }
+                }));
+            } catch (err) {
+                alert("Brak dostępu do mikrofonu: " + err);
+            }
+        };
+
+        leaveVoiceBtn.onclick = function() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            for (const id in peerConnections) {
+                peerConnections[id].close();
+                delete peerConnections[id];
+            }
+            
+            joinVoiceBtn.style.display = 'inline-block';
+            leaveVoiceBtn.style.display = 'none';
+            voiceStatusText.textContent = "Status głosowy: Rozłączony";
+            voiceStatusText.className = "text-muted small";
+            voiceStatusIcon.style.display = 'none';
+            document.getElementById('remote-audios').innerHTML = '';
+        };
+    }
+
+    async function handleVoiceSignal(sender, data) {
+        if (data.type === 'join') {
+            if (!localStream) return; 
+            const pc = createPeerConnection(sender);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            
+            chatSocket.send(JSON.stringify({
+                'action': 'signal',
+                'signal_data': { 'type': 'offer', 'offer': offer, 'target': sender }
+            }));
+        } 
+        else if (data.type === 'offer' && data.target === userName) {
+            const pc = createPeerConnection(sender);
+            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            
+            chatSocket.send(JSON.stringify({
+                'action': 'signal',
+                'signal_data': { 'type': 'answer', 'answer': answer, 'target': sender }
+            }));
+        } 
+        else if (data.type === 'answer' && data.target === userName) {
+            const pc = peerConnections[sender];
+            if (pc) {
+                await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+            }
+        } 
+        else if (data.type === 'candidate' && data.target === userName) {
+            const pc = peerConnections[sender];
+            if (pc && data.candidate) {
+                await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        }
+    }
+
+    function createPeerConnection(sender) {
+        if (peerConnections[sender]) return peerConnections[sender];
+
+        const pc = new RTCPeerConnection(rtcConfig);
+        peerConnections[sender] = pc;
+
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+        pc.onicecandidate = event => {
+            if (event.candidate) {
+                chatSocket.send(JSON.stringify({
+                    'action': 'signal',
+                    'signal_data': { 'type': 'candidate', 'candidate': event.candidate, 'target': sender }
+                }));
+            }
+        };
+
+        pc.ontrack = event => {
+            let remoteAudio = document.getElementById(`audio-${sender}`);
+            if (!remoteAudio) {
+                remoteAudio = document.createElement('audio');
+                remoteAudio.id = `audio-${sender}`;
+                remoteAudio.autoplay = true;
+                document.getElementById('remote-audios').appendChild(remoteAudio);
+            }
+            remoteAudio.srcObject = event.streams[0];
+        };
+
+        return pc;
+    }
 </script>
 {% endblock %}
