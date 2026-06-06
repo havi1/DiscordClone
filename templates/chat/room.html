@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% block content %}
-<script src="https://cdn.jsdelivr.net/npm/emoji-button@2.12.1/dist/index.min.js"></script>
 
 <div class="row g-0 shadow-lg rounded-4 overflow-hidden" style="height: 85vh;">
     <div class="col-md-3 sidebar p-3 d-flex flex-column" style="height: 100%; min-height: 0;">
@@ -39,16 +38,13 @@
             {% for u in users %}
                 <div class="d-flex align-items-center justify-content-between pe-2 channel-link mb-1 user-list-item">
                     <a href="{% url 'dm' u.username %}" class="text-decoration-none flex-grow-1 d-flex align-items-center" style="color: inherit;">
-                        
                         <div class="position-relative d-inline-block me-2">
                             <i class="bi bi-person-fill fs-5"></i>
                             <span class="position-absolute bottom-0 end-0 rounded-circle border border-2 border-dark status-dot {% if u.is_online %}status-online{% else %}status-offline{% endif %}">
                             </span>
                         </div>
-                        
                         <span class="{% if u.is_blocked %}text-danger text-decoration-line-through{% endif %}">{{ u.username }}</span>
                     </a>
-                    
                     {% if request.user.role == 'admin' or request.user.role == 'mod' %}
                         {% if u.role != 'admin' %}
                             <a href="{% url 'toggle_block' u.id %}" class="btn btn-sm p-0 m-0 text-muted" title="Zablokuj / Odblokuj">
@@ -107,19 +103,16 @@
                         </div>
                     {% endif %}
                 </div>
-                
                 <div class="flex-grow-1 pe-4">
                     <div>
                         <strong class="text-white" style="font-size: 15px;">{{ msg.sender.username }}</strong> 
                         <span class="text-muted ms-2" style="font-size: 12px;">{{ msg.timestamp|date:"d M H:i" }}</span>
                     </div>
-                    
                     {% if msg.sender == request.user or request.user.role == 'admin' or request.user.role == 'mod' %}
                     <button class="btn btn-sm btn-danger position-absolute top-0 end-0 delete-btn m-2 py-0 px-2" onclick="deleteMessage('{{ msg.id }}')" title="Usuń wiadomość">
                         <i class="bi bi-trash3-fill" style="font-size: 12px;"></i>
                     </button>
                     {% endif %}
-                    
                     <div class="text-light mt-1" style="font-size: 15px; word-break: break-word;">
                         {{ msg.content }}
                         {% if msg.image %}
@@ -168,7 +161,6 @@
         searchInput.addEventListener('input', function() {
             const filterText = this.value.toLowerCase();
             const userItems = document.querySelectorAll('.user-list-item');
-
             userItems.forEach(function(item) {
                 const username = item.textContent.toLowerCase();
                 if (username.includes(filterText)) {
@@ -218,7 +210,6 @@
             const messageElement = document.createElement('div');
             messageElement.id = `msg-${data.message_id}`;
             messageElement.className = "position-relative d-flex message-item mb-2";
-            
             messageElement.innerHTML = `
                 <div class="me-3 mt-1">${avatarHtml}</div>
                 <div class="flex-grow-1 pe-4">
@@ -237,7 +228,6 @@
                 if (Notification.permission === "granted") {
                     let notificationBody = data.message ? data.message : "📷 Przesłano zdjęcie";
                     let notificationIcon = data.avatar_url ? data.avatar_url : "https://cdn-icons-png.flaticon.com/512/3670/3670157.png";
-                    
                     new Notification("Nowa wiadomość od " + data.username, {
                         body: notificationBody,
                         icon: notificationIcon
@@ -287,6 +277,7 @@
     const initialChatLog = document.querySelector('#chat-log');
     initialChatLog.scrollTop = initialChatLog.scrollHeight;
 
+    // --- KANAŁ GŁOSOWY WEBRTC ---
     let localStream;
     const peerConnections = {}; 
     const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }; 
@@ -300,20 +291,16 @@
         joinVoiceBtn.onclick = async function() {
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                
                 joinVoiceBtn.style.display = 'none';
                 leaveVoiceBtn.style.display = 'inline-block';
-                voiceStatusText.textContent = "Status głosowy: Połączony (Mikrofon aktywny)";
+                voiceStatusText.textContent = "Status: Połączony";
                 voiceStatusText.className = "text-success small fw-bold";
                 voiceStatusIcon.style.display = 'inline-block';
-
                 chatSocket.send(JSON.stringify({
                     'action': 'signal',
                     'signal_data': { 'type': 'join' }
                 }));
-            } catch (err) {
-                alert("Brak dostępu do mikrofonu: " + err);
-            }
+            } catch (err) { alert("Brak dostępu do mikrofonu: " + err); }
         };
 
         leaveVoiceBtn.onclick = function() {
@@ -324,7 +311,6 @@
                 peerConnections[id].close();
                 delete peerConnections[id];
             }
-            
             joinVoiceBtn.style.display = 'inline-block';
             leaveVoiceBtn.style.display = 'none';
             voiceStatusText.textContent = "Status głosowy: Rozłączony";
@@ -340,7 +326,6 @@
             const pc = createPeerConnection(sender);
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            
             chatSocket.send(JSON.stringify({
                 'action': 'signal',
                 'signal_data': { 'type': 'offer', 'offer': offer, 'target': sender }
@@ -351,7 +336,6 @@
             await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            
             chatSocket.send(JSON.stringify({
                 'action': 'signal',
                 'signal_data': { 'type': 'answer', 'answer': answer, 'target': sender }
@@ -373,12 +357,9 @@
 
     function createPeerConnection(sender) {
         if (peerConnections[sender]) return peerConnections[sender];
-
         const pc = new RTCPeerConnection(rtcConfig);
         peerConnections[sender] = pc;
-
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
         pc.onicecandidate = event => {
             if (event.candidate) {
                 chatSocket.send(JSON.stringify({
@@ -387,7 +368,6 @@
                 }));
             }
         };
-
         pc.ontrack = event => {
             let remoteAudio = document.getElementById(`audio-${sender}`);
             if (!remoteAudio) {
@@ -398,19 +378,9 @@
             }
             remoteAudio.srcObject = event.streams[0];
         };
-
         return pc;
     }
-
-    const picker = new EmojiButton({ theme: 'dark', position: 'top-start' });
-    const emojiBtn = document.getElementById('emoji-btn');
-    picker.on('emoji', emoji => {
-        messageInput.value += emoji;
-    });
-    if (emojiBtn) {
-        emojiBtn.addEventListener('click', () => picker.togglePicker(emojiBtn));
-    }
-
+    
     let voiceRecorder;
     let voiceChunks = [];
     let isVoiceRecording = false;
@@ -424,16 +394,13 @@
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     voiceRecorder = new MediaRecorder(stream);
                     voiceChunks = [];
-
                     voiceRecorder.ondataavailable = e => { voiceChunks.push(e.data); };
                     voiceRecorder.onstop = async () => {
                         const audioBlob = new Blob(voiceChunks, { type: 'audio/wav' });
                         const formData = new FormData();
                         formData.append('audio', audioBlob, 'voice.wav');
-
                         const response = await fetch(`/chat/${roomName}/upload_audio/`, { method: 'POST', body: formData });
                         const data = await response.json();
-
                         if (data.success) {
                             chatSocket.send(JSON.stringify({
                                 'action': 'chat_message', 'message': '', 'image_url': null, 
@@ -441,7 +408,6 @@
                             }));
                         }
                     };
-
                     voiceRecorder.start();
                     isVoiceRecording = true;
                     recordBtn.innerHTML = '<i class="bi bi-stop-fill fs-5 text-danger"></i>';
@@ -453,6 +419,22 @@
                 recordBtn.innerHTML = '<i class="bi bi-mic-fill fs-5"></i>';
             }
         };
+    }
+</script>
+
+<script type="module">
+    import { EmojiButton } from 'https://esm.sh/@joeattardi/emoji-button@4.6.0';
+    
+    const emojiPicker = new EmojiButton({ theme: 'dark', position: 'top-start' });
+    const btnEmoji = document.getElementById('emoji-btn');
+    const inputMsg = document.getElementById('chat-message-input');
+    
+    emojiPicker.on('emoji', selection => {
+        inputMsg.value += selection.emoji;
+    });
+    
+    if (btnEmoji) {
+        btnEmoji.addEventListener('click', () => emojiPicker.togglePicker(btnEmoji));
     }
 </script>
 {% endblock %}
