@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.0/dist/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/emoji-button@2.12.1/dist/index.min.js"></script>
 
 <div class="row g-0 shadow-lg rounded-4 overflow-hidden" style="height: 85vh;">
     <div class="col-md-3 sidebar p-3 d-flex flex-column" style="height: 100%; min-height: 0;">
@@ -404,8 +404,8 @@
 
     const picker = new EmojiButton({ theme: 'dark', position: 'top-start' });
     const emojiBtn = document.getElementById('emoji-btn');
-    picker.on('emoji', selection => {
-        messageInput.value += selection.emoji;
+    picker.on('emoji', emoji => {
+        messageInput.value += emoji;
     });
     if (emojiBtn) {
         emojiBtn.addEventListener('click', () => picker.togglePicker(emojiBtn));
