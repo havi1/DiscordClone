@@ -256,7 +256,11 @@
         const formData = new FormData();
         formData.append('image', file);
 
-        const response = await fetch(`/chat/${roomName}/upload/`, { method: 'POST', body: formData });
+        const response = await fetch(`/chat/${roomName}/upload/`, { 
+            method: 'POST', 
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData 
+        });
         const data = await response.json();
 
         if (data.success) {
@@ -380,7 +384,7 @@
         };
         return pc;
     }
-    
+
     let voiceRecorder;
     let voiceChunks = [];
     let isVoiceRecording = false;
@@ -399,7 +403,11 @@
                         const audioBlob = new Blob(voiceChunks, { type: 'audio/wav' });
                         const formData = new FormData();
                         formData.append('audio', audioBlob, 'voice.wav');
-                        const response = await fetch(`/chat/${roomName}/upload_audio/`, { method: 'POST', body: formData });
+                        const response = await fetch(`/chat/${roomName}/upload_audio/`, { 
+                            method: 'POST', 
+                            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                            body: formData 
+                        });
                         const data = await response.json();
                         if (data.success) {
                             chatSocket.send(JSON.stringify({
