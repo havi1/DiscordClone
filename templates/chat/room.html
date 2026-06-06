@@ -10,10 +10,17 @@
             <a href="/chat/offtopic/" class="channel-link d-block mb-1"># offtopic</a>
         </div>
 
-        <h6 class="fw-bold text-uppercase text-muted mb-3 mt-2" style="font-size: 12px;">Wiadomości Prywatne</h6>
+        <h6 class="text-muted px-2 mb-3 mt-4" style="font-size: 12px; font-weight: 700; text-transform: uppercase;">
+            Wiadomości Prywatne
+        </h6>
+        
+        <div class="px-2 mb-3">
+            <input type="text" id="user-search-input" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Szukaj znajomego..." style="border-radius: 4px;">
+        </div>
+
         <div class="flex-grow-1" style="overflow-y: auto; overflow-x: hidden;">
             {% for u in users %}
-                <div class="d-flex align-items-center justify-content-between pe-2 channel-link mb-1">
+                <div class="d-flex align-items-center justify-content-between pe-2 channel-link mb-1 user-list-item">
                     <a href="{% url 'dm' u.username %}" class="text-decoration-none flex-grow-1 d-flex align-items-center" style="color: inherit;">
                         
                         <div class="position-relative d-inline-block me-2">
@@ -131,6 +138,26 @@
     const roomName = JSON.parse(document.getElementById('room-name').textContent);
     const userName = JSON.parse(document.getElementById('user-name').textContent);
     const userRole = JSON.parse(document.getElementById('user-role').textContent);
+
+    const searchInput = document.getElementById('user-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const filterText = this.value.toLowerCase();
+            const userItems = document.querySelectorAll('.user-list-item');
+
+            userItems.forEach(function(item) {
+                const username = item.textContent.toLowerCase();
+                
+                if (username.includes(filterText)) {
+                    item.classList.remove('d-none');
+                    item.classList.add('d-flex');
+                } else {
+                    item.classList.remove('d-flex');
+                    item.classList.add('d-none');
+                }
+            });
+        });
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         if ("Notification" in window) {
