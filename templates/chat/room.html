@@ -14,8 +14,14 @@
         <div class="flex-grow-1" style="overflow-y: auto; overflow-x: hidden;">
             {% for u in users %}
                 <div class="d-flex align-items-center justify-content-between pe-2 channel-link mb-1">
-                    <a href="{% url 'dm' u.username %}" class="text-decoration-none flex-grow-1" style="color: inherit;">
-                        <i class="bi bi-person-fill me-1"></i> 
+                    <a href="{% url 'dm' u.username %}" class="text-decoration-none flex-grow-1 d-flex align-items-center" style="color: inherit;">
+                        
+                        <div class="position-relative d-inline-block me-2">
+                            <i class="bi bi-person-fill fs-5"></i>
+                            <span class="position-absolute bottom-0 end-0 rounded-circle border border-2 border-dark status-dot {% if u.is_online %}status-online{% else %}status-offline{% endif %}">
+                            </span>
+                        </div>
+                        
                         <span class="{% if u.is_blocked %}text-danger text-decoration-line-through{% endif %}">{{ u.username }}</span>
                     </a>
                     

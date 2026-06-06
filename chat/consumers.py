@@ -4,14 +4,35 @@ from channels.db import database_sync_to_async
 from .models import Channel, Message
 
 class ChatConsumer(AsyncWebsocketConsumer):
+    
+    @database_sync_to_async
+    def update_user_status(self, is_online):
+        user = self.scope["user"]
+        if user.is_authenticated:
+            user.is_online = is_online
+            user.save()
+
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'chat_{self.room_name}'
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        self.room_group_name = 'chat_%s' % self.room_name
+
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
         await self.accept()
+        
+
+        await self.update_user_status(True)
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+  
+        await self.update_user_status(False)
+
 
     async def receive(self, text_data):
         data = json.loads(text_data)
