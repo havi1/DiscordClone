@@ -54,3 +54,21 @@ def upload_image(request, room_name):
         return JsonResponse({'success': True, 'image_url': msg.image.url, 'username': request.user.username, 'message_id': msg.id})
     return JsonResponse({'success': False})
 
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+
+@login_required
+def upload_audio(request, room_name):
+    if request.method == 'POST' and request.FILES.get('audio'):
+        if request.user.is_blocked:
+            return JsonResponse({'success': False})
+        
+        channel = get_object_or_404(Channel, name=room_name)
+        audio_file = request.FILES['audio']
+        
+        msg = Message.objects.create(user=request.user, channel=channel, content="[Wiadomość głosowa]")
+        file_name = default_storage.save(f'audio/voice_{msg.id}.wav', ContentFile(audio_file.read()))
+        
+        return JsonResponse({'success': True, 'audio_url': settings.MEDIA_URL + file_name, 'message_id': msg.id})
+    return JsonResponse({'success': False})
+

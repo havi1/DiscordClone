@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
-
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.0/dist/index.min.js"></script>
 {% block content %}
 <div class="row g-0 shadow-lg rounded-4 overflow-hidden" style="height: 85vh;">
     <div class="col-md-3 sidebar p-3 d-flex flex-column">
@@ -124,6 +125,7 @@
                         {% if msg.image %}
                             <br><img src="{{ msg.image.url }}" class="img-fluid rounded mt-2 shadow-sm" style="max-height: 300px;">
                         {% endif %}
+                        <!-- Zwykłe wyświetlanie audio na starcie (jeśli serwer podałby to jako treść) -->
                     </div>
                 </div>
             </div>
@@ -136,6 +138,13 @@
                     <i class="bi bi-plus-circle-fill fs-5"></i>
                     <input type="file" id="chat-image-input" accept="image/*" hidden>
                 </label>
+                
+                <button id="emoji-btn" class="btn border-0 text-muted px-2" type="button" title="Dodaj emoji" style="background-color: #383a40 !important;">
+                    <i class="bi bi-emoji-smile fs-5"></i>
+                </button>
+                <button id="record-btn" class="btn border-0 text-muted px-2" type="button" title="Nagraj wiadomość" style="background-color: #383a40 !important;">
+                    <i class="bi bi-mic-fill fs-5" id="record-icon"></i>
+                </button>
                 
                 <input id="chat-message-input" type="text" class="form-control border-0 shadow-none text-white" style="background-color: #383a40 !important; padding: 12px 0;" placeholder="Napisz na {% if is_dm %}@{{ other_user.username }}{% else %}#{{ room_name }}{% endif %}">
                 <button id="chat-message-submit" class="btn border-0 text-muted px-3" style="background-color: #383a40 !important;">
@@ -154,7 +163,6 @@
     const roomName = JSON.parse(document.getElementById('room-name').textContent);
     const userName = JSON.parse(document.getElementById('user-name').textContent);
     const userRole = JSON.parse(document.getElementById('user-role').textContent);
-
 
     const searchInput = document.getElementById('user-search-input');
     if (searchInput) {
@@ -195,6 +203,8 @@
             let contentHtml = data.message;
             if (data.image_url) {
                 contentHtml = `<img src="${data.image_url}" class="img-fluid rounded mt-2 shadow-sm" style="max-height: 300px;">`;
+            } else if (data.audio_url) {
+                contentHtml = `<audio controls src="${data.audio_url}" class="mt-2 w-100" style="max-width: 300px;"></audio>`;
             }
 
             let deleteBtn = '';
@@ -394,5 +404,61 @@
 
         return pc;
     }
+
+    const picker = new EmojiButton({ theme: 'dark', position: 'top-start' });
+    const emojiBtn = document.getElementById('emoji-btn');
+    picker.on('emoji', selection => {
+        messageInput.value += selection.emoji;
+    });
+    if (emojiBtn) {
+        emojiBtn.addEventListener('click', () => picker.togglePicker(emojiBtn));
+    }
+
+    let voiceRecorder;
+    let voiceChunks = [];
+    let isVoiceRecording = false;
+    const recordBtn = document.getElementById('record-btn');
+    const recordIcon = document.getElementById('record-icon');
+
+    if (recordBtn) {
+        recordBtn.onclick = async function() {
+            if (!isVoiceRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    voiceRecorder = new MediaRecorder(stream);
+                    voiceChunks = [];
+
+                    voiceRecorder.ondataavailable = e => { voiceChunks.push(e.data); };
+                    voiceRecorder.onstop = async () => {
+                        const audioBlob = new Blob(voiceChunks, { type: 'audio/wav' });
+                        const formData = new FormData();
+                        formData.append('audio', audioBlob, 'voice.wav');
+
+                        const response = await fetch(`/chat/${roomName}/upload_audio/`, { method: 'POST', body: formData });
+                        const data = await response.json();
+
+                        if (data.success) {
+                            chatSocket.send(JSON.stringify({
+                                'action': 'chat_message', 'message': '', 'image_url': null, 
+                                'audio_url': data.audio_url, 'message_id': data.message_id
+                            }));
+                        }
+                    };
+
+                    voiceRecorder.start();
+                    isVoiceRecording = true;
+                    recordBtn.classList.replace('text-muted', 'text-danger');
+                    recordIcon.classList.replace('bi-mic-fill', 'bi-stop-fill');
+                } catch (err) { alert("Brak dostępu do mikrofonu: " + err); }
+            } else {
+                voiceRecorder.stop();
+                voiceRecorder.stream.getTracks().forEach(track => track.stop());
+                isVoiceRecording = false;
+                recordBtn.classList.replace('text-danger', 'text-muted');
+                recordIcon.classList.replace('bi-stop-fill', 'bi-mic-fill');
+            }
+        };
+    }
 </script>
+{% endblock %}
 {% endblock %}

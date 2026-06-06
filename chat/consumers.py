@@ -45,6 +45,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 return
             message = data.get('message', '')
             image_url = data.get('image_url', None)
+            audio_url = data.get('audio_url', None)
             message_id = data.get('message_id', None) 
 
             if user.is_authenticated and not image_url and message:
@@ -56,6 +57,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'type': 'chat_message_event',
                     'message': message,
                     'image_url': image_url,
+                    'audio_url': audio_url,
                     'username': user.username if user.is_authenticated else "Anonim",
                     'message_id': message_id
                 }
@@ -90,6 +92,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'action': 'chat_message',
             'message': event['message'],
             'image_url': event.get('image_url'),
+            'audio_url': event.get('audio_url', None),
             'username': event['username'],
             'message_id': event['message_id']
         }))
